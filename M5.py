@@ -146,6 +146,25 @@ class RegressionTree:
         # print(">> Devide to 2 branch with condition", node.get_condition())
         self.create_tree(left_node)
         self.create_tree(right_node)
+
+    def simplify_linear_models(seld, node: Node):
+        current_error = self.calc_node_error(node)
+        node.model_variable = self.__attrs 
+        greedy_variables = node.model_variable.copy()
+        check_stop = True
+        while len(greedy_variables) > 1 or check_stop:
+            for givenIndex in range(len(greedy_variables)):
+                temp = greedy_variables[:givenIndex] + inputList[givenIndex + 1:]
+                print(temp, greedy_variables)
+                X, Y = node.dataset[temp].to_numpy(), node.dataset[self.__target].to_numpy()
+                Yhat = node.model.predict(X)
+                temp_error = self.calc_error(Y, Yhat, X.shape[1]) 
+                if temp_error < current_error:
+                    greedy_variables = temp
+                    del greedy_variables[givenIndex]
+        node.model_variable = greedy_variables
+        node.model = LinearRegression()
+        node.model.fit(node.dataset[node.model_variable].to_numpy(), node.dataset[self.__target].to_numpy())
         
     def prune(self, node: Node):
         """
@@ -285,3 +304,4 @@ if __name__ == "__main__":
     # print(f"MAPE={mape(labels, preds)}")
     print((np.sum(np.abs(np.array(labels) - np.array(preds)))) / len(labels))
     """
+    # https://hal.archives-ouvertes.fr/hal-03762155/file/220826%20python-m5p%20-%20Sylvain%20MARIE%201.1.pdf
