@@ -7,7 +7,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_percentage_error as mape
 from tqdm import tqdm
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 warnings.filterwarnings("ignore")
 np.random.seed(2)
@@ -311,6 +311,18 @@ if __name__ == "__main__":
     train = train.reset_index()
     test = test.reset_index()
     
+    # Nomalize
+    for attr in ["RamCapacity",	"DisplaySize", "PinCapacity",	"PinCell"]:
+        scaler = MinMaxScaler()
+        scaler.fit(train[[attr]])
+        train[[attr]] = scaler.transform(train[[attr]])
+        test[[attr]] = scaler.transform(test[[attr]])
+    
+    # scaler = StandardScaler()
+    # scaler.fit(train[["PriceSale"]])
+    # train[["PriceSale"]] = scaler.transform(train[["PriceSale"]])
+    # test[["PriceSale"]] = scaler.transform(test[["PriceSale"]])
+    
     model = RegressionTree(k=5, min_split=7, sd_threshold=0.95) 
     model.fit(train, ["RamCapacity",  "DisplaySize",  "PinCapacity",  "PinCell",  "DiskSpace",   "ACER",  "ASUS",  "DELL",  "FUJITSU",  "GIGABYTE",  "HP",  "LENOVO",  "LG",  "MSI"], "PriceSale")
     
@@ -326,6 +338,7 @@ if __name__ == "__main__":
     print("== All RULE ==")
     rules = model.get_rule()
     for rule in rules:
-        print(" AND ".join(rule))
+        print(" AND ".join(rule[:-1]))
+        print("Model:", rule[-1])
     # print((np.sum(np.abs(np.array(labels) - np.array(preds)))) / len(labels))
     # https://hal.archives-ouvertes.fr/hal-03762155/file/220826%20python-m5p%20-%20Sylvain%20MARIE%201.1.pdf
