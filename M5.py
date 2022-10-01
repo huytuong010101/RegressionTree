@@ -174,7 +174,6 @@ class RegressionTree:
             if check_count == count:
                 break
         node.model_variable = greedy_variables
-        node.model = temp_model
         node.model.fit(node.dataset[node.model_variable].to_numpy(), node.dataset[self.__target].to_numpy())
 
         
