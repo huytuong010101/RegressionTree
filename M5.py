@@ -107,9 +107,9 @@ class RegressionTree:
         # Build regresion model each node
         # TODO: Simplication of linear mode
         # TODO: Reimplement Linear regression
-        node.model_variable = self.__attrs # here just get all variable
-        node.model = LinearRegression()
-        node.model.fit(dataset[node.model_variable].to_numpy(), dataset[self.__target].to_numpy())
+
+        self.simplify_linear_models(node)
+
         # Stop if have less sample or small SD
         if len(dataset) < self.__min_split or np.std(node.dataset[self.__target].to_numpy()) < self.__sd_threshold*self.__SD:
             print(">> Reach leaf with dataset")
@@ -147,24 +147,36 @@ class RegressionTree:
         self.create_tree(left_node)
         self.create_tree(right_node)
 
-    def simplify_linear_models(seld, node: Node):
-        current_error = self.calc_node_error(node)
+    def simplify_linear_models(self, node: Node):
+        # Current status
         node.model_variable = self.__attrs 
-        greedy_variables = node.model_variable.copy()
-        check_stop = True
-        while len(greedy_variables) > 1 or check_stop:
-            for givenIndex in range(len(greedy_variables)):
-                temp = greedy_variables[:givenIndex] + inputList[givenIndex + 1:]
-                print(temp, greedy_variables)
-                X, Y = node.dataset[temp].to_numpy(), node.dataset[self.__target].to_numpy()
-                Yhat = node.model.predict(X)
-                temp_error = self.calc_error(Y, Yhat, X.shape[1]) 
-                if temp_error < current_error:
-                    greedy_variables = temp
-                    del greedy_variables[givenIndex]
-        node.model_variable = greedy_variables
         node.model = LinearRegression()
         node.model.fit(node.dataset[node.model_variable].to_numpy(), node.dataset[self.__target].to_numpy())
+        current_error = self.calc_node_error(node)
+
+        # Greedy simpify linear models
+        greedy_variables = node.model_variable.copy()
+        while len(greedy_variables) > 1:
+            count = len(greedy_variables)
+            check_count = count
+            for givenIndex in range(len(greedy_variables)):
+                temp = greedy_variables[:givenIndex] + greedy_variables[givenIndex + 1:]
+                temp_model = LinearRegression() 
+                X, Y = node.dataset[temp].to_numpy(), node.dataset[self.__target].to_numpy()
+                temp_model.fit(X, Y)
+                Yhat = temp_model.predict(X)
+                temp_error = self.calc_error(Y, Yhat, X.shape[1]) 
+                if temp_error < current_error:
+                    check_count -= 1
+                    current_error = temp_error
+                    greedy_variables = temp.copy()
+                    print("Chosen variable:", greedy_variables)
+            if check_count == count:
+                break
+        node.model_variable = greedy_variables
+        node.model = temp_model
+        node.model.fit(node.dataset[node.model_variable].to_numpy(), node.dataset[self.__target].to_numpy())
+
         
     def prune(self, node: Node):
         """
@@ -251,16 +263,18 @@ if __name__ == "__main__":
     # Train data
     df = pd.DataFrame({
         "x1": [0, -1, 1, 2, 3, 4, 5, 6, 7, 8],
+        "x2": [0, 5, 2, 4, 5, 6, 8, 9, 10, 11],
         "y": [1, -1, 3, 5, 7, 17, 21, 25, 29, 33],
     })
     print(">> Train data")
     print(df)
     # Train
     model = RegressionTree(k=1, min_split=4, sd_threshold=0.2) # just set sd=0.2 to debug
-    model.fit(df, ["x1"], "y")
+    model.fit(df, ["x1", "x2"], "y")
     # Test
     test = pd.DataFrame({
         "x1": [5.5],
+        "x2": [7.8]
     })
     print(">> Input")
     print(test)
