@@ -1,79 +1,17 @@
 import numpy as np
 import pandas as pd 
 import warnings
-
 from sklearn.linear_model import LinearRegression
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_percentage_error as mape
 from tqdm import tqdm
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import MinMaxScaler
+
+from Node import Node
 
 warnings.filterwarnings("ignore")
 np.random.seed(2)
-
-class Node:
-    def __init__(self, parent=None, childs: tuple=(None, None), dataset: pd.DataFrame=None):
-        self.__parent = parent
-        self.__childs = childs
-        self.__dataset = dataset
-        self.__attr = None
-        self.__threshold = None
-        self.__is_category = False
-        self.__model = None
-        self.__model_variable = []
-        
-    def set_condition(self, attr: str, threshold, is_category=False):
-        self.__attr = attr
-        self.__threshold = threshold
-        self.__is_category = is_category
-        
-    def get_condition(self):
-        return self.__attr, self.__threshold, self.__is_category
-    
-    def is_leaf(self):
-        return self.__childs == (None, None)
-            
-    @property
-    def model(self):
-        return self.__model
-    
-    @property
-    def model_variable(self):
-        return self.__model_variable
-    
-    @property
-    def parent(self):
-        return self.__parent
-    
-    @property
-    def childs(self):
-        return self.__childs
-    
-    @property
-    def dataset(self):
-        return self.__dataset
-    
-    @model.setter
-    def model(self, value):
-        self.__model = value
-    
-    @parent.setter
-    def parent(self, value):
-        self.__parent = value
-        
-    @childs.setter
-    def childs(self, value):
-        self.__childs = value
-        
-    @dataset.setter
-    def dataset(self, value):
-        self.__dataset = value
-        
-    @model_variable.setter
-    def model_variable(self, value):
-        self.__model_variable = value
-        
 
 class RegressionTree:
     def __init__(self, k: int=15, min_split: int=4, sd_threshold: float=0.55):
