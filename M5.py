@@ -1,12 +1,16 @@
 import numpy as np
 import pandas as pd 
 import warnings
-warnings.filterwarnings("ignore")
+
 from sklearn.linear_model import LinearRegression
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_percentage_error as mape
 from tqdm import tqdm
+from sklearn.preprocessing import MinMaxScaler
+
+warnings.filterwarnings("ignore")
+np.random.seed(2)
 
 class Node:
     def __init__(self, parent=None, childs: tuple=(None, None), dataset: pd.DataFrame=None):
@@ -105,15 +109,13 @@ class RegressionTree:
         """
         dataset: pd.DataFrame = node.dataset
         # Build regresion model each node
-        # TODO: Simplication of linear mode
         # TODO: Reimplement Linear regression
 
         self.simplify_linear_models(node)
 
         # Stop if have less sample or small SD
         if len(dataset) < self.__min_split or np.std(node.dataset[self.__target].to_numpy()) < self.__sd_threshold*self.__SD:
-            print(">> Reach leaf with dataset")
-            print(node.dataset.reset_index())
+            print(f">> Reach leaf with {len(node.dataset)} record")
             return
         T = dataset[self.__target].to_numpy()
         # Init sub tree
@@ -170,9 +172,9 @@ class RegressionTree:
                     check_count -= 1
                     current_error = temp_error
                     greedy_variables = temp.copy()
-                    print("Chosen variable:", greedy_variables)
             if check_count == count:
                 break
+        # print("Chosen variable:", greedy_variables)
         node.model_variable = greedy_variables
         node.model.fit(node.dataset[node.model_variable].to_numpy(), node.dataset[self.__target].to_numpy())
 
@@ -189,7 +191,7 @@ class RegressionTree:
             subtree_error = self.calc_subtree_error(node)
             this_node_error = self.calc_node_error(node)
             if  subtree_error >= this_node_error:
-                # print(">> Prune tree !!!", subtree_error, this_node_error)
+                print(">> Prune tree !!!", subtree_error, this_node_error)
                 node.childs = (None, None)
         
     def fit(self, dataset, attrs: list=[], target: str=None):
@@ -224,7 +226,10 @@ class RegressionTree:
             del nodes[0]
             # check if reach leaf
             if node.is_leaf():
-                paths.append(path)
+                str_model = "+".join([f"{w}*{attr}" for w, attr in zip(node.model.coef_, node.model_variable)])
+                str_model = str_model + "+" + str(node.model.intercept_)
+                paths.append(path + [str_model])
+                
             else:
                 attr, threshold, _ = node.get_condition()
                 nodes.append((path + [f"{attr} < {threshold}"], node.childs[0]))
@@ -259,6 +264,7 @@ class RegressionTree:
         
         
 if __name__ == "__main__":
+    """
     # Train data
     df = pd.DataFrame({
         "x1": [0, -1, 1, 2, 3, 4, 5, 6, 7, 8],
@@ -286,6 +292,7 @@ if __name__ == "__main__":
         print(" AND ".join(rule))
     
     """
+    
     DATASET = r"clean_dataset_v3.csv"
     dataset = pd.read_csv(DATASET)
     dataset = dataset[["PriceSale",	"Brand", "RamCapacity",	"DisplaySize", "PinCapacity",	"PinCell", "DiskSpace"]]
@@ -303,8 +310,8 @@ if __name__ == "__main__":
     train, test = train_test_split(dataset)
     train = train.reset_index()
     test = test.reset_index()
-
-    model = RegressionTree(k=5, min_split=15, sd_threshold=0.95) 
+    
+    model = RegressionTree(k=5, min_split=7, sd_threshold=0.95) 
     model.fit(train, ["RamCapacity",  "DisplaySize",  "PinCapacity",  "PinCell",  "DiskSpace",   "ACER",  "ASUS",  "DELL",  "FUJITSU",  "GIGABYTE",  "HP",  "LENOVO",  "LG",  "MSI"], "PriceSale")
     
     labels = []
@@ -314,7 +321,11 @@ if __name__ == "__main__":
         labels.append(row.PriceSale)
         preds.append(model.predict(sample))
 
-    # print(f"MAPE={mape(labels, preds)}")
-    print((np.sum(np.abs(np.array(labels) - np.array(preds)))) / len(labels))
-    """
+    print(f"MAPE={mape(labels, preds)}")
+    
+    print("== All RULE ==")
+    rules = model.get_rule()
+    for rule in rules:
+        print(" AND ".join(rule))
+    # print((np.sum(np.abs(np.array(labels) - np.array(preds)))) / len(labels))
     # https://hal.archives-ouvertes.fr/hal-03762155/file/220826%20python-m5p%20-%20Sylvain%20MARIE%201.1.pdf
